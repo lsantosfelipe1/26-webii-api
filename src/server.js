@@ -8,6 +8,8 @@ const server = app.listen(PORT, () => {
   console.log("Servidor rodando na porta " + PORT);
   console.log("Health check: http://localhost:" + PORT + "/health");
   console.log("Usuários: http://localhost:" + PORT + "/users");
+  console.log("Matérias: http://localhost:" + PORT + "/subjects");
+  console.log("Questoes: http://localhost:" + PORT + "/questions");
 });
 
 async function shutdown(signal) {

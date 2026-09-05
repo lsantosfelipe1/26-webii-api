@@ -12,11 +12,11 @@ http:
     type: json
     data: |-
       {
-        "enunciado": "Quanto é 2 + 2? {{runId}}",
+        "enunciado": "Quanto é 2 + 2?",
         "dificuldade": 1,
         "respostaCorreta": "4",
-        "subjectId": {{subjectId}},
-        "authorId": {{userId}}
+        "subjectId": 1,
+        "authorId": 1
       }
 
 runtime:
@@ -43,3 +43,7 @@ runtime:
 
 settings:
   encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
