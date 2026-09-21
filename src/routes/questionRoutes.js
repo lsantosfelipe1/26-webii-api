@@ -1,12 +1,39 @@
 import express from "express";
 import * as questionController from "../controllers/questionController.js";
+import validate from "../middlewares/validate.js";
+import {
+    createQuestionSchema,
+    questionIdParamSchema,
+    updateQuestionSchema,
+} from "../schemas/questionSchema.js";
 
 const router = express.Router();
 
-router.post("/", questionController.create);
+router.post(
+    "/",
+    validate(createQuestionSchema),
+    questionController.create,
+);
+
 router.get("/", questionController.getAll);
-router.get("/:id", questionController.getById);
-router.patch("/:id", questionController.update);
-router.delete("/:id", questionController.remove);
+
+router.get(
+    "/:id",
+    validate(questionIdParamSchema, "params"),
+    questionController.getById,
+);
+
+router.patch(
+    "/:id",
+    validate(questionIdParamSchema, "params"),
+    validate(updateQuestionSchema),
+    questionController.update,
+);
+
+router.delete(
+    "/:id",
+    validate(questionIdParamSchema, "params"),
+    questionController.remove,
+);
 
 export default router;

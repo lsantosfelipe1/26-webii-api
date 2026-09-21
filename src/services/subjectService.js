@@ -1,4 +1,5 @@
 import prisma from "../config/database.js";
+import { ConflictError, NotFoundError } from "../errors/AppError.js";
 
 const publicUserSelect = {
   id: true,
@@ -17,119 +18,113 @@ const publicSubjectSelect = {
   professor: { select: publicUserSelect },
 };
 
-export const getAllSubjects = async () => {
+export async function getAllSubjects() {
   return prisma.subject.findMany({
     select: publicSubjectSelect,
     orderBy: { createdAt: "desc" },
   });
-};
+}
 
-export const getSubjectById = async (subjectId) => {
-  return prisma.subject.findUnique({
+export async function getSubjectById(subjectId) {
+  const subject = await prisma.subject.findUnique({
     where: { id: subjectId },
     select: publicSubjectSelect,
   });
-};
 
-export const createSubject = async (subjectData) => {
+  if (!subject) {
+    throw new NotFoundError(`Matéria com ID ${subjectId} nao encontrada`);
+  }
+
+  return subject;
+}
+
+export async function createSubject(data) {
   const professor = await prisma.user.findUnique({
-    where: { id: subjectData.professorId },
+    where: { id: data.professorId },
     select: { id: true },
   });
 
   if (!professor) {
-    return { ok: false, reason: "PROFESSOR_NOT_FOUND" };
+    throw new NotFoundError(
+      `Professor com ID ${data.professorId} nao encontrado`,
+    );
   }
 
-  const subject = await prisma.subject.create({
+  return prisma.subject.create({
     data: {
-      nome: subjectData.nome.trim(),
-      professorId: subjectData.professorId,
-      ativa: subjectData.ativa ?? true,
+      nome: data.nome,
+      professorId: data.professorId,
+      ativa: data.ativa ?? true,
     },
     select: publicSubjectSelect,
   });
+}
 
-  return { ok: true, data: subject };
-};
-
-export const updateSubject = async (subjectId, subjectData) => {
-  const subjectExists = await prisma.subject.findUnique({
+export async function updateSubject(subjectId, data) {
+  const subject = await prisma.subject.findUnique({
     where: { id: subjectId },
     select: { id: true },
   });
 
-  if (!subjectExists) {
-    return { ok: false, reason: "NOT_FOUND" };
+  if (!subject) {
+    throw new NotFoundError(`Matéria com ID ${subjectId} nao encontrada`);
   }
 
-  if (Object.hasOwn(subjectData, "professorId")) {
+  if (data.professorId !== undefined) {
     const professor = await prisma.user.findUnique({
-      where: { id: subjectData.professorId },
+      where: { id: data.professorId },
       select: { id: true },
     });
 
     if (!professor) {
-      return { ok: false, reason: "PROFESSOR_NOT_FOUND" };
+      throw new NotFoundError(
+        `Professor com ID ${data.professorId} nao encontrado`,
+      );
     }
   }
 
-  const data = {};
-
-  if (Object.hasOwn(subjectData, "nome")) {
-    data.nome = subjectData.nome.trim();
-  }
-
-  if (Object.hasOwn(subjectData, "ativa")) {
-    data.ativa = subjectData.ativa;
-  }
-
-  if (Object.hasOwn(subjectData, "professorId")) {
-    data.professorId = subjectData.professorId;
-  }
-
-  const subject = await prisma.subject.update({
+  return prisma.subject.update({
     where: { id: subjectId },
     data,
     select: publicSubjectSelect,
   });
+}
 
-  return { ok: true, data: subject };
-};
-
-export const deleteSubject = async (subjectId) => {
-  const subjectExists = await prisma.subject.findUnique({
+export async function deleteSubject(subjectId) {
+  const subject = await prisma.subject.findUnique({
     where: { id: subjectId },
     select: {
       id: true,
-      _count: { select: { questions: true } },
+      _count: {
+        select: {
+          questions: true,
+        },
+      },
     },
   });
 
-  if (!subjectExists) {
-    return { ok: false, reason: "NOT_FOUND" };
+  if (!subject) {
+    throw new NotFoundError(`Matéria com ID ${subjectId} nao encontrada`);
   }
 
-  if (subjectExists._count.questions > 0) {
-    return { ok: false, reason: "SUBJECT_IN_USE" };
+  if (subject._count.questions > 0) {
+    throw new ConflictError("Matéria possui questoes vinculadas");
   }
 
   try {
-    const subject = await prisma.subject.delete({
+    return await prisma.subject.delete({
       where: { id: subjectId },
       select: publicSubjectSelect,
     });
-
-    return { ok: true, data: subject };
   } catch (error) {
-    if (error.code === "P2003" || error.code === "P2014") {
-      return { ok: false, reason: "SUBJECT_IN_USE" };
+    if (error?.code === "P2003" || error?.code === "P2014") {
+      throw new ConflictError("Matéria possui questoes vinculadas");
     }
 
-    if (error.code === "P2025") {
-      return { ok: false, reason: "NOT_FOUND" };
+    if (error?.code === "P2025") {
+      throw new NotFoundError(`Matéria com ID ${subjectId} nao encontrada`);
     }
 
     throw error;
   }
-};
+}
