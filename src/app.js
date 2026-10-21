@@ -18,7 +18,8 @@ app.get("/health", async (_req, res) => {
       message: "API do Gerador de Provas",
       timestamp: new Date().toISOString(),
       version: "1.0.0",
-      availableVersions: ["v1"],
+      // MODIFICADO: anuncia V2 também, sem mudar o resultado 200/503.
+      availableVersions: ["v1", "v2"],
       services: {
         api: "OK",
         database: { status: "OK" },
@@ -31,7 +32,8 @@ app.get("/health", async (_req, res) => {
       status: "DEGRADED",
       message: "API do Gerador de Provas",
       version: "1.0.0",
-      availableVersions: ["v1"],
+      // MODIFICADO: anuncia V2 também, sem mudar o resultado 200/503.
+      availableVersions: ["v1", "v2"],
       services: {
         api: "OK",
         database: { status: "ERROR" },
@@ -41,6 +43,9 @@ app.get("/health", async (_req, res) => {
 });
 
 app.use("/v1", v1Routes);
+// ADICIONADO: monta somente a V2; não modifica nem deprecia a montagem V1.
+app.use("/v2", v2Routes);
+
 
 app.use(notFoundHandler);
 app.use(errorHandler);
